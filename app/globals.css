@@ -428,7 +428,7 @@ body {
     align-items: stretch !important;
   }
   .menu-category-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
   .menu-item-grid {
     grid-template-columns: 1fr !important;
@@ -441,6 +441,9 @@ body {
   }
   .mobile-sticky-bar {
     display: flex !important;
+  }
+  .menu-jump-btn {
+    display: none !important;
   }
   .footer-grid {
     grid-template-columns: 1fr !important;
@@ -476,5 +479,8 @@ body {
   }
   .menu-item-grid {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .menu-category-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 }

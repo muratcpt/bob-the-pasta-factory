@@ -264,8 +264,8 @@ export default function Hero() {
             }}
           >
             <Image
-              src="/images/hero-bg.jpg"
-              alt="BOB The Pasta Factory — parmesan tekerinde hazırlanan el yapımı fettucine"
+              src="/images/gallery-5.jpg"
+              alt="BOB The Pasta Factory — deniz mahsüllü el yapımı fettucine"
               fill
               priority
               sizes="(max-width: 767px) 88vw, (max-width: 1023px) 46vw, 40vw"
@@ -312,14 +312,14 @@ export default function Hero() {
                 boxShadow: "0 6px 18px rgba(156,53,31,.35)",
               }}
             >
-              🧀
+              🍝
             </div>
             <div>
               <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text)", lineHeight: 1.25 }}>
-                Parmesan Tekerinde Sunum
+                Günlük Taze Üretim
               </div>
               <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-                Günlük taze, el yapımı
+                El yapımı, her gün taze
               </div>
             </div>
           </div>

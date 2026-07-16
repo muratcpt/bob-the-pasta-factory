@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check } from "lucide-react";
 import { MENU, RESTAURANT } from "@/lib/data";
 import type { MenuItem, MenuCategory } from "@/lib/data";
 import { fadeUp, fadeIn, staggerContainer, staggerContainerFast } from "@/lib/animations";
@@ -25,7 +27,25 @@ const GRID_COLS: Record<string, number> = {
   icecekler: 3,
 };
 
+/* Gerçek fotoğrafımız olan kategoriler görsel kart, olmayanlar renkli gradient kart alır. */
+const CATEGORY_VISUAL: Record<string, { image?: string; gradient?: string }> = {
+  "fix-menuler": { image: "/images/gallery-3.jpg" },
+  "parmesan-tekerinde-makarnalar": { image: "/images/hero-bg.jpg" },
+  lazanya: { image: "/images/gallery-2.jpg" },
+  ravioli: { image: "/images/gallery-9.jpg" },
+  "focaccia-sandvicler": { gradient: "linear-gradient(135deg, var(--secondary), var(--secondary-dark))" },
+  tiramisu: { gradient: "linear-gradient(135deg, var(--gold), #a5813a)" },
+  kahveler: { gradient: "linear-gradient(135deg, #4a3524, var(--text))" },
+  icecekler: { gradient: "linear-gradient(135deg, var(--primary), #e2896f)" },
+};
+
 const HERO_PILLS = [`⭐ ${RESTAURANT.rating} Puan`, RESTAURANT.priceRange, "🍝 El Yapımı"];
+
+function itemCount(category: MenuCategory) {
+  const direct = category.items?.length ?? 0;
+  const nested = category.subcategories?.reduce((s, sc) => s + sc.items.length, 0) ?? 0;
+  return direct + nested;
+}
 
 function MenuItemCard({ item }: { item: MenuItem }) {
   return (
@@ -84,42 +104,189 @@ function MenuItemCard({ item }: { item: MenuItem }) {
   );
 }
 
-function CategorySection({ category, isLast }: { category: MenuCategory; isLast: boolean }) {
-  const cols = GRID_COLS[category.id] ?? 2;
+function CategoryCard({
+  category,
+  active,
+  onSelect,
+}: {
+  category: MenuCategory;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  const visual = CATEGORY_VISUAL[category.id] ?? {};
+  const count = itemCount(category);
 
   return (
-    <motion.section
-      id={category.slug}
-      style={{
-        scrollMarginTop: 150,
-        padding: "56px 0",
-        borderBottom: isLast ? "none" : "1px solid var(--border)",
-      }}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.1 }}
+    <motion.button
       variants={fadeUp}
+      type="button"
+      onClick={onSelect}
+      whileHover={{ y: -5 }}
+      style={{
+        position: "relative",
+        aspectRatio: "5/4",
+        borderRadius: 20,
+        overflow: "hidden",
+        cursor: "pointer",
+        padding: 0,
+        border: active ? "3px solid var(--gold)" : "3px solid transparent",
+        boxShadow: active ? "0 14px 34px var(--shadow)" : "0 6px 18px var(--shadow)",
+        background: visual.gradient ?? "#1a1410",
+        transition: "border-color .2s, box-shadow .2s",
+      }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: category.description ? 8 : 26 }}>
-        <span style={{ fontSize: 34, lineHeight: 1 }}>{category.icon}</span>
-        <h2
+      {visual.image && (
+        <>
+          <Image
+            src={visual.image}
+            alt={category.name}
+            fill
+            sizes="(max-width: 767px) 46vw, 22vw"
+            style={{ objectFit: "cover" }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(180deg, rgba(20,14,10,.15) 0%, rgba(20,14,10,.82) 100%)",
+            }}
+          />
+        </>
+      )}
+
+      <span
+        style={{
+          position: "absolute",
+          top: 10,
+          right: 10,
+          padding: "3px 10px",
+          borderRadius: 100,
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#fff",
+          background: "rgba(0,0,0,.35)",
+          backdropFilter: "blur(4px)",
+        }}
+      >
+        {count} ürün
+      </span>
+
+      {active && (
+        <span
           style={{
-            margin: 0,
+            position: "absolute",
+            top: 10,
+            left: 10,
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            background: "var(--gold)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Check size={14} color="#2b2118" strokeWidth={3} />
+        </span>
+      )}
+
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          padding: "12px",
+          textAlign: "center",
+        }}
+      >
+        <span style={{ fontSize: 30 }}>{category.icon}</span>
+        <span
+          style={{
             fontFamily: "var(--font-display)",
             fontWeight: 800,
-            fontSize: "clamp(24px, 3vw, 32px)",
-            color: "var(--text)",
+            fontSize: 15.5,
+            lineHeight: 1.25,
+            color: "#fff",
+            textShadow: "0 2px 10px rgba(0,0,0,.4)",
           }}
         >
           {category.name}
-        </h2>
+        </span>
       </div>
+    </motion.button>
+  );
+}
 
-      {category.description && (
-        <p style={{ fontSize: 14.5, color: "var(--text-muted)", maxWidth: 640, marginBottom: 28 }}>
-          {category.description}
-        </p>
-      )}
+function CategoryContent({ category }: { category: MenuCategory }) {
+  const cols = GRID_COLS[category.id] ?? 2;
+  const visual = CATEGORY_VISUAL[category.id] ?? {};
+
+  return (
+    <motion.div
+      key={category.id}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+    >
+      <div
+        style={{
+          position: "relative",
+          borderRadius: 24,
+          overflow: "hidden",
+          marginBottom: 32,
+          minHeight: visual.image ? 180 : "auto",
+          display: "flex",
+          alignItems: "flex-end",
+          background: visual.image ? undefined : visual.gradient ?? "var(--bg-alt)",
+        }}
+      >
+        {visual.image && (
+          <>
+            <Image src={visual.image} alt={category.name} fill sizes="100vw" style={{ objectFit: "cover" }} />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(90deg, rgba(20,14,10,.82) 0%, rgba(20,14,10,.35) 65%, transparent 100%)",
+              }}
+            />
+          </>
+        )}
+        <div style={{ position: "relative", padding: "26px 30px", zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: category.description ? 8 : 0 }}>
+            <span style={{ fontSize: 32, lineHeight: 1 }}>{category.icon}</span>
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: "var(--font-display)",
+                fontWeight: 800,
+                fontSize: "clamp(22px, 3vw, 30px)",
+                color: visual.image || visual.gradient ? "#fff" : "var(--text)",
+                textShadow: visual.image || visual.gradient ? "0 2px 10px rgba(0,0,0,.35)" : "none",
+              }}
+            >
+              {category.name}
+            </h2>
+          </div>
+          {category.description && (
+            <p
+              style={{
+                margin: 0,
+                fontSize: 14,
+                maxWidth: 560,
+                color: visual.image || visual.gradient ? "rgba(255,255,255,.88)" : "var(--text-muted)",
+              }}
+            >
+              {category.description}
+            </p>
+          )}
+        </div>
+      </div>
 
       {category.items && (
         <div
@@ -158,38 +325,46 @@ function CategorySection({ category, isLast }: { category: MenuCategory; isLast:
           ))}
         </div>
       )}
-    </motion.section>
+    </motion.div>
   );
 }
 
 export default function MenuBrowser() {
   const [activeSlug, setActiveSlug] = useState(MENU[0].slug);
+  const [showJumpBtn, setShowJumpBtn] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const sections = MENU.map((cat) => document.getElementById(cat.slug)).filter(
-      (el): el is HTMLElement => el !== null
-    );
-    if (sections.length === 0) return;
+    const applyHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (hash && MENU.some((c) => c.slug === hash)) {
+        setActiveSlug(hash);
+      }
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting);
-        if (visible.length === 0) return;
-        const topMost = visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        setActiveSlug(topMost.target.id);
-      },
-      { rootMargin: "-160px 0px -65% 0px", threshold: 0 }
-    );
-
-    sections.forEach((s) => observer.observe(s));
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const observer = new IntersectionObserver(([entry]) => setShowJumpBtn(!entry.isIntersecting), {
+      rootMargin: "-90px 0px 0px 0px",
+    });
+    observer.observe(grid);
     return () => observer.disconnect();
   }, []);
 
-  const handleTabClick = (slug: string) => {
-    const el = document.getElementById(slug);
-    if (!el) return;
+  const activeCategory = MENU.find((c) => c.slug === activeSlug) ?? MENU[0];
+
+  const handleSelect = (slug: string, scroll: boolean) => {
     setActiveSlug(slug);
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.replaceState(null, "", `#${slug}`);
+    if (scroll) {
+      contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   return (
@@ -252,8 +427,7 @@ export default function MenuBrowser() {
             }}
           >
             Parmesan tekerinde son dokunuşla hazırlanan el yapımı makarnalardan taze focaccia
-            sandviçlere, İtalyan usulü tiramisuya kadar — Çanakkale&apos;de bir pasta factory
-            deneyimi.
+            sandviçlere, İtalyan usulü tiramisuya kadar — bir kategori seçin, lezzete başlayın.
           </motion.p>
           <motion.div
             initial="hidden"
@@ -287,50 +461,71 @@ export default function MenuBrowser() {
         </div>
       </section>
 
-      {/* ─── SEKME ÇUBUĞU ─── */}
-      <div
-        style={{
-          position: "sticky",
-          top: 80,
-          zIndex: 60,
-          background: "var(--bg)",
-          borderBottom: "1px solid var(--border)",
-          boxShadow: "0 6px 20px var(--shadow)",
-        }}
-      >
-        <div
-          className="menu-tabs section-pad"
-          style={{
-            maxWidth: 1280,
-            margin: "0 auto",
-            padding: "14px 40px",
-            display: "flex",
-            justifyContent: "center",
-            gap: 10,
-            overflowX: "auto",
-            whiteSpace: "nowrap",
-          }}
+      {/* ─── KATEGORİ GRID'İ ─── */}
+      <div className="section-pad" style={{ maxWidth: 1200, margin: "0 auto", padding: "0 40px 56px" }}>
+        <motion.div
+          ref={gridRef}
+          className="menu-category-grid"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={staggerContainer}
+          style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18 }}
         >
           {MENU.map((cat) => (
-            <button
+            <CategoryCard
               key={cat.id}
-              type="button"
-              onClick={() => handleTabClick(cat.slug)}
-              className={`btn-pill${activeSlug === cat.slug ? " active" : ""}`}
-              style={{ flexShrink: 0 }}
-            >
-              <span>{cat.icon}</span> {cat.name}
-            </button>
+              category={cat}
+              active={cat.slug === activeSlug}
+              onSelect={() => handleSelect(cat.slug, true)}
+            />
           ))}
-        </div>
+        </motion.div>
       </div>
 
-      {/* ─── KATEGORİLER ─── */}
-      <div className="section-pad" style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px" }}>
-        {MENU.map((cat, i) => (
-          <CategorySection key={cat.id} category={cat} isLast={i === MENU.length - 1} />
-        ))}
+      {/* ─── SEÇİLİ KATEGORİ İÇERİĞİ ─── */}
+      <div
+        ref={contentRef}
+        className="section-pad"
+        style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px 40px", scrollMarginTop: 96 }}
+      >
+        <AnimatePresence mode="wait">
+          <CategoryContent key={activeCategory.id} category={activeCategory} />
+        </AnimatePresence>
       </div>
+
+      {/* ─── HIZLI KATEGORİ DÖNÜŞ BUTONU ─── */}
+      <AnimatePresence>
+        {showJumpBtn && (
+          <motion.button
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            onClick={() => gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            style={{
+              position: "fixed",
+              bottom: 24,
+              left: 24,
+              zIndex: 50,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "12px 20px",
+              borderRadius: 100,
+              background: "var(--card)",
+              border: "1.5px solid var(--border)",
+              boxShadow: "0 10px 30px var(--shadow)",
+              fontSize: 13.5,
+              fontWeight: 700,
+              color: "var(--text)",
+              cursor: "pointer",
+            }}
+            className="menu-jump-btn"
+          >
+            🍽️ Kategoriler
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* ─── ALT CTA BANDI ─── */}
       <section
