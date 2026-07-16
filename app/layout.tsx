@@ -24,7 +24,7 @@ const greatVibes = Great_Vibes({
   weight: "400",
 });
 
-const BASE_URL = "https://bobthepastafactory.vercel.app";
+const BASE_URL = "https://bob-ashy-two.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
